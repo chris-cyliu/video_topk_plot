@@ -1,6 +1,6 @@
 [
     {
-        "dataset": "'Grand Canal'",
+        "dataset": "Grand Canal",
         "k": 50,
         "conf": 0.9,
         "window": [
