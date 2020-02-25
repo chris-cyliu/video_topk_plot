@@ -11,6 +11,27 @@ mpl.rcParams['axes.linewidth'] = 1
 makers = ["d", "x", "s", "^", "+", ">", "o"]
 fillstyle = ["none", "full"]
 LINEWIDTH = 1
+realdata = set()
+
+
+def select_dataset(k_path, conf_path):
+    with open(k_path, 'r') as f:
+        k_result = json.load(f)
+    with open(conf_path, 'r') as f:
+        conf_result = json.load(f)
+
+    sign = dict()
+    global realdata
+    for dataset in k_result:
+        sign[dataset["dataset"]] = np.mean(dataset["precision"]) > 0.8
+    for dataset in conf_result:
+        sign[dataset["dataset"]] &= np.mean(dataset["precision"]) > 0.8
+    for k, v in sign.items():
+        if v and not k.startswith("VIR"):
+            realdata.add(k)
+
+    print("valid real data:", realdata)
+
 
 def plot_overall(in_path, out_path, k, w):
     with open(in_path, 'rt') as f:
@@ -19,6 +40,9 @@ def plot_overall(in_path, out_path, k, w):
     for i, ki in enumerate(result[0]["k"]):
         if ki == k:
             idx = i
+
+    global realdata
+    result = [dataset for dataset in result if dataset["dataset"] in realdata]
 
     dataset_name = [dataset["dataset"] for dataset in result]
     baseline = [dataset["runtime"]["baseline"] for dataset in result]
@@ -55,6 +79,9 @@ def plot_quality_vs_k(in_path, out_prefix):
     with open(in_path, 'rt') as f:
         result = json.load(f)
 
+    global realdata
+    result = [dataset for dataset in result if dataset["dataset"] in realdata]
+
     styles = ['-', '--', '-.', '-', '--', '-.', '-']
     colors = ['#73A9CF', 'c', 'm', 'g', 'r', 'b', 'y']
 
@@ -71,7 +98,7 @@ def plot_quality_vs_k(in_path, out_prefix):
     ax.xaxis.set_tick_params(width=1, which='minor', length=4)
     ax.set_ylabel('Speedup', fontsize=20, fontfamily='Serif', labelpad=8)
     ax.set_xlabel('K', fontsize=18, fontfamily='Serif', fontstyle='italic', labelpad=8)
-    
+
     fig.subplots_adjust(bottom=0.15)
     lines = []
     labels = []
@@ -103,7 +130,7 @@ def plot_quality_vs_k(in_path, out_prefix):
     ax.xaxis.set_tick_params(width=1, which='minor', length=4)
     ax.set_ylabel('Precision', fontsize=20, fontfamily='Serif', labelpad=8)
     ax.set_xlabel('K', fontsize=18, fontfamily='Serif', fontstyle='italic', labelpad=8)
-    
+
     fig.subplots_adjust(bottom=0.15)
     lines = []
     labels = []
@@ -131,7 +158,7 @@ def plot_quality_vs_k(in_path, out_prefix):
     ax.xaxis.set_tick_params(width=1, which='minor', length=4)
     ax.set_ylabel('Score Error', fontsize=20, fontfamily='Serif', labelpad=8)
     ax.set_xlabel('K', fontsize=18, fontfamily='Serif', fontstyle='italic', labelpad=8)
-    
+
     fig.subplots_adjust(bottom=0.15)
     lines = []
     labels = []
@@ -159,7 +186,7 @@ def plot_quality_vs_k(in_path, out_prefix):
     ax.xaxis.set_tick_params(width=1, which='minor', length=4)
     ax.set_ylabel('Rank Distance', fontsize=20, fontfamily='Serif', labelpad=8)
     ax.set_xlabel('K', fontsize=18, fontfamily='Serif', fontstyle='italic', labelpad=8)
-    
+
     fig.subplots_adjust(bottom=0.15)
     lines = []
     labels = []
@@ -179,6 +206,9 @@ def plot_quality_vs_confidence(in_path, out_prefix):
     with open(in_path, 'rt') as f:
         result = json.load(f)
 
+    global realdata
+    result = [dataset for dataset in result if dataset["dataset"] in realdata]
+
     styles = ['-', '--', '-.', '-', '--', '-.', '-']
     colors = ['#73A9CF', 'c', 'm', 'g', 'r', 'b', 'y']
 
@@ -195,7 +225,7 @@ def plot_quality_vs_confidence(in_path, out_prefix):
     ax.xaxis.set_tick_params(width=1, which='minor', length=4)
     ax.set_ylabel('Speedup', fontsize=20, fontfamily='Serif', labelpad=8)
     ax.set_xlabel('Confidence', fontsize=18, fontfamily='Serif', fontstyle='italic', labelpad=8)
-    
+
     fig.subplots_adjust(bottom=0.15)
     lines = []
     labels = []
@@ -227,7 +257,7 @@ def plot_quality_vs_confidence(in_path, out_prefix):
     ax.xaxis.set_tick_params(width=1, which='minor', length=4)
     ax.set_ylabel('Precision', fontsize=13, fontfamily='Serif', labelpad=8)
     ax.set_xlabel('Confidence', fontsize=13, fontfamily='Serif', labelpad=8)
-    
+
     fig.subplots_adjust(bottom=0.15)
     lines = []
     labels = []
@@ -256,7 +286,7 @@ def plot_quality_vs_confidence(in_path, out_prefix):
     ax.xaxis.set_tick_params(width=1, which='minor', length=4)
     ax.set_ylabel('Score Error', fontsize=20, fontfamily='Serif', labelpad=8)
     ax.set_xlabel('Confidence', fontsize=18, fontfamily='Serif', fontstyle='italic', labelpad=8)
-    
+
     fig.subplots_adjust(bottom=0.15)
     lines = []
     labels = []
@@ -284,7 +314,7 @@ def plot_quality_vs_confidence(in_path, out_prefix):
     ax.xaxis.set_tick_params(width=1, which='minor', length=4)
     ax.set_ylabel('Rank Distance', fontsize=20, fontfamily='Serif', labelpad=8)
     ax.set_xlabel('Confidence', fontsize=18, fontfamily='Serif', fontstyle='italic', labelpad=8)
-    
+
     fig.subplots_adjust(bottom=0.15)
     lines = []
     labels = []
@@ -300,6 +330,7 @@ def plot_quality_vs_confidence(in_path, out_prefix):
 
 
 if __name__ == "__main__":
+    select_dataset("result/quality_vs_k.json", "result/quality_vs_confidence.json")
     plot_overall("result/quality_vs_k.json", "result/fig/runtime.pdf", 50, 0.3)
     plot_quality_vs_k("result/quality_vs_k.json", "result/fig/")
     plot_quality_vs_confidence("result/quality_vs_confidence.json", "result/fig/")
