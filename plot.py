@@ -305,8 +305,7 @@ def plot_quality_vs_k(in_path, out_prefix):
                         markeredgewidth=2)
         lines.append(line)
         labels.append(dataset['dataset'])
-    plt.legend(lines, labels, bbox_to_anchor=(0, 1.05, 1, 0.2),
-               loc="upper left",
+    plt.legend(lines, labels, bbox_to_anchor=(0, 0.8, 1, 0.2), loc="upper left",
                mode="expand", ncol=2, framealpha=0, fontsize=15)
     with PdfPages(out_prefix + "rank_distance_vs_k.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
@@ -452,7 +451,7 @@ def plot_quality_vs_confidence(in_path, out_prefix):
                         markeredgewidth=2)
         lines.append(line)
         labels.append(dataset['dataset'])
-    plt.legend(lines, labels, bbox_to_anchor=(0, 1, 1, 0.2), loc="lower left",
+    plt.legend(lines, labels, bbox_to_anchor=(0, 0.8, 1, 0.2), loc="upper left",
                mode="expand", ncol=2, framealpha=0, fontsize=15)
     with PdfPages(out_prefix + "rank_distance_vs_confidence.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
@@ -594,7 +593,7 @@ if __name__ == "__main__":
     select_dataset("result/quality_vs_k.json",
                     "result/quality_vs_confidence.json")
     plot_overall("result/quality_vs_k.json", "result/fig/", 50, 0.3)
-    # plot_quality_vs_k("result/quality_vs_k.json", "result/fig/")
-    # plot_quality_vs_confidence("result/quality_vs_confidence.json", "result/fig/")
+    plot_quality_vs_k("result/quality_vs_k.json", "result/fig/")
+    plot_quality_vs_confidence("result/quality_vs_confidence.json", "result/fig/")
     plot_quality_vs_num_object("result/vir_quality_vs_k.json", 50, "result/fig/")
 
