@@ -46,7 +46,7 @@ def plot_overall(in_path, out_path, k, w):
 
     dataset_name = [dataset["dataset"] for dataset in result]
     baseline = [dataset["runtime"]["baseline"] for dataset in result]
-    everest = [dataset["runtime"]["topk"][idx] + dataset["runtime"]["split"] + dataset["runtime"]["train"] + dataset["runtime"]["infer"] + dataset["runtime"]["cdf"] + 7000 / 30 for dataset in result]
+    everest = [dataset["runtime"]["topk"][idx] + dataset["runtime"]["split"] + dataset["runtime"]["train"] + dataset["runtime"]["infer"] + + 7000 / 30 for dataset in result]
     x_pos = np.arange(len(result))
 
     fig, ax = plt.subplots()
@@ -105,7 +105,7 @@ def plot_quality_vs_k(in_path, out_prefix):
     for i, dataset in enumerate(result):
         k = dataset["k"]
         runtime = dataset["runtime"]
-        prev_runtime = runtime["split"] + runtime["train"] + runtime["infer"] + runtime["cdf"]
+        prev_runtime = runtime["split"] + runtime["train"] + runtime["infer"]
         prev_runtime += 7000 / 30
         runtime_i = [t+prev_runtime for t in runtime["topk"]]
         speedup = [runtime["baseline"]/t for t in runtime_i]
@@ -232,7 +232,7 @@ def plot_quality_vs_confidence(in_path, out_prefix):
     for i, dataset in enumerate(result):
         confidence = dataset["conf"]
         runtime = dataset["runtime"]
-        prev_runtime = runtime["split"] + runtime["train"] + runtime["infer"] + runtime["cdf"]
+        prev_runtime = runtime["split"] + runtime["train"] + runtime["infer"]
         prev_runtime += 7000 / 30
         runtime_i = [t+prev_runtime for t in runtime["topk"]]
         speedup = [runtime["baseline"]/t for t in runtime_i]
