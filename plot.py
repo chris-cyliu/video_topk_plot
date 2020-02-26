@@ -17,6 +17,18 @@ fillstyle = ["none", "full"]
 LINEWIDTH = 1
 realdata = set()
 
+def replace_dataset_name(dataset_name):
+    ret = []
+    for x in dataset_name:
+        if x == "GTRP":
+            ret.append("Grand Targhee")
+        elif x == "archie":
+            ret.append("Archie")
+        elif x == "amsterdam":
+            ret.append("Amsterdam")
+        else:
+            ret.append(x)
+    return ret
 
 def select_dataset(k_path, conf_path):
     with open(k_path, 'r') as f:
@@ -48,11 +60,11 @@ def plot_overall(in_path, out_prefix, k, w):
     global realdata
     result = [dataset for dataset in result if dataset["dataset"] in realdata]
 
-    dataset_name = [dataset["dataset"] for dataset in result]
+    dataset_name = replace_dataset_name([dataset["dataset"] for dataset in result])
     baseline = [dataset["runtime"]["baseline"] for dataset in result]
     everest = [dataset["runtime"]["topk"][idx] + dataset["runtime"]["split"] +
-               dataset["runtime"]["train"] + dataset["runtime"]["infer"] +
-               dataset["runtime"]["cdf"] + 7000 / 30 for dataset in result]
+               dataset["runtime"]["train"] + dataset["runtime"]["infer"]+
+               7000 / 30 for dataset in result]
     x_pos = np.arange(len(result))
 
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
@@ -90,7 +102,7 @@ def plot_overall(in_path, out_prefix, k, w):
     # Start Precision#
     precisions = [dataset["precision"][idx] for dataset in result]
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
-    ax.set_ylim([0, 1])
+    ax.set_ylim([0, 1.1])
     ax.yaxis.set_minor_locator(MultipleLocator(5))
     ax.yaxis.set_minor_formatter(NullFormatter())
     ax.yaxis.set_tick_params(width=1, which='major', length=5.4,
@@ -116,7 +128,6 @@ def plot_overall(in_path, out_prefix, k, w):
     # Start Score error#
     score_errors = [dataset["score error"][idx] for dataset in result]
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
-    ax.set_ylim([0, 1])
     ax.yaxis.set_minor_locator(MultipleLocator(5))
     ax.yaxis.set_minor_formatter(NullFormatter())
     ax.yaxis.set_tick_params(width=1, which='major', length=5.4,
@@ -142,7 +153,6 @@ def plot_overall(in_path, out_prefix, k, w):
     # Start Rank distance#
     rank_distances = [dataset["rank distance"][idx] for dataset in result]
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
-    ax.set_ylim([0, 25])
     ax.yaxis.set_minor_locator(MultipleLocator(5))
     ax.yaxis.set_minor_formatter(NullFormatter())
     ax.yaxis.set_tick_params(width=1, which='major', length=5.4,
@@ -173,12 +183,9 @@ def plot_quality_vs_k(in_path, out_prefix):
     global realdata
     result = [dataset for dataset in result if dataset["dataset"] in realdata]
 
-    styles = ['-', '--', '-.', '-', '--', '-.', '-']
-    colors = ['#73A9CF', 'c', 'm', 'g', 'r', 'b', 'y']
-
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
-    ax.set_xlim([15, 105])
-    ax.set_ylim([0, 50])
+    ax.set_xlim([5, 100])
+    ax.set_ylim([-4, 30])
     ax.xaxis.set_minor_locator(MultipleLocator(5))
     ax.xaxis.set_minor_formatter(NullFormatter())
     ax.yaxis.set_minor_locator(MultipleLocator(5))
@@ -196,8 +203,7 @@ def plot_quality_vs_k(in_path, out_prefix):
     for i, dataset in enumerate(result):
         k = dataset["k"]
         runtime = dataset["runtime"]
-        prev_runtime = runtime["split"] + runtime["train"] + runtime["infer"] + \
-                       runtime["cdf"]
+        prev_runtime = runtime["split"] + runtime["train"] + runtime["infer"]
         prev_runtime += 7000 / 30
         runtime_i = [t + prev_runtime for t in runtime["topk"]]
         speedup = [runtime["baseline"] / t for t in runtime_i]
@@ -208,14 +214,14 @@ def plot_quality_vs_k(in_path, out_prefix):
                         markeredgewidth=2)
         lines.append(line)
         labels.append(dataset['dataset'])
-    plt.legend(lines, labels, bbox_to_anchor=(0, 0.8, 1, 0.2), loc="upper left",
-               mode="expand", ncol=2, fontsize=15, framealpha=0)
+    plt.legend(lines, replace_dataset_name(labels), bbox_to_anchor=(0, -0.1, 1.05, 0.2), loc="lower left",
+           mode="expand", ncol=2, fontsize=15, framealpha=0)
     with PdfPages(out_prefix + "speedup_vs_k.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
 
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
     ax.set_yticks(np.arange(0, 1.1, 0.1))
-    ax.set_xlim([15, 105])
+    ax.set_xlim([5, 100])
     ax.set_ylim([0, 1.05])
     ax.xaxis.set_minor_locator(MultipleLocator(5))
     ax.xaxis.set_minor_formatter(NullFormatter())
@@ -241,13 +247,13 @@ def plot_quality_vs_k(in_path, out_prefix):
                         markeredgewidth=2)
         lines.append(line)
         labels.append(dataset['dataset'])
-    plt.legend(lines, labels, bbox_to_anchor=(0, 0, 1, 0.2), loc="lower left",
+    plt.legend(lines, replace_dataset_name(labels), bbox_to_anchor=(0, 0, 1.05, 0.2), loc="lower left",
                mode="expand", ncol=2, fancybox=False, framealpha=0, fontsize=15)
     with PdfPages(out_prefix + "precision_vs_k.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
 
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
-    ax.set_xlim([15, 105])
+    ax.set_xlim([5, 100])
     ax.set_ylim([0, 2])
     ax.xaxis.set_minor_locator(MultipleLocator(5))
     ax.xaxis.set_minor_formatter(NullFormatter())
@@ -273,18 +279,17 @@ def plot_quality_vs_k(in_path, out_prefix):
                         markeredgewidth=2)
         lines.append(line)
         labels.append(dataset['dataset'])
-    plt.legend(lines, labels, bbox_to_anchor=(0, 0.8, 1, 0.2), loc="upper left",
+    plt.legend(lines, replace_dataset_name(labels), bbox_to_anchor=(0, 0.8, 1.05, 0.2), loc="upper left",
                mode="expand", ncol=2, framealpha=0, fontsize=15)
     with PdfPages(out_prefix + "score_error_vs_k.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
 
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
-    ax.set_xlim([15, 105])
-    ax.set_ylim([0, 10])
+    ax.set_xlim([5, 100])
+    ax.set_ylim([0, 25])
     ax.xaxis.set_minor_locator(MultipleLocator(5))
     ax.xaxis.set_minor_formatter(NullFormatter())
-    ax.yaxis.set_major_locator(MultipleLocator(1))
-    ax.yaxis.set_minor_locator(MultipleLocator(0.2))
+    ax.yaxis.set_major_locator(MultipleLocator(5))
     ax.yaxis.set_minor_formatter(NullFormatter())
     ax.yaxis.set_tick_params(width=1, which='major', length=6, labelsize=15)
     ax.yaxis.set_tick_params(width=1, which='minor', length=4)
@@ -305,7 +310,7 @@ def plot_quality_vs_k(in_path, out_prefix):
                         markeredgewidth=2)
         lines.append(line)
         labels.append(dataset['dataset'])
-    plt.legend(lines, labels, bbox_to_anchor=(0, 0.8, 1, 0.2), loc="upper left",
+    plt.legend(lines, replace_dataset_name(labels), bbox_to_anchor=(0, 0.8, 1.05, 0.2), loc="upper left",
                mode="expand", ncol=2, framealpha=0, fontsize=15)
     with PdfPages(out_prefix + "rank_distance_vs_k.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
@@ -319,11 +324,10 @@ def plot_quality_vs_confidence(in_path, out_prefix):
     result = [dataset for dataset in result if dataset["dataset"] in realdata]
 
     styles = ['-', '--', '-.', '-', '--', '-.', '-']
-    colors = ['#73A9CF', 'c', 'm', 'g', 'r', 'b', 'y']
 
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
     ax.set_xlim([0.5, 1])
-    ax.set_ylim([0, 50])
+    ax.set_ylim([-3, 25])
     ax.xaxis.set_minor_locator(MultipleLocator(0.05))
     ax.xaxis.set_minor_formatter(NullFormatter())
     ax.yaxis.set_minor_locator(MultipleLocator(5))
@@ -333,7 +337,7 @@ def plot_quality_vs_confidence(in_path, out_prefix):
     ax.xaxis.set_tick_params(width=1, which='major', length=5.4, labelsize=15)
     ax.xaxis.set_tick_params(width=1, which='minor', length=3.7)
     ax.set_ylabel('Speedup', fontsize=15, labelpad=0)
-    ax.set_xlabel('Confidence', fontsize=15, labelpad=0)
+    ax.set_xlabel('thres', fontsize=15, labelpad=0)
 
     fig.subplots_adjust(bottom=0.15)
     lines = []
@@ -341,8 +345,7 @@ def plot_quality_vs_confidence(in_path, out_prefix):
     for i, dataset in enumerate(result):
         confidence = dataset["conf"]
         runtime = dataset["runtime"]
-        prev_runtime = runtime["split"] + runtime["train"] + runtime["infer"] + \
-                       runtime["cdf"]
+        prev_runtime = runtime["split"] + runtime["train"] + runtime["infer"]
         prev_runtime += 7000 / 30
         runtime_i = [t + prev_runtime for t in runtime["topk"]]
         speedup = [runtime["baseline"] / t for t in runtime_i]
@@ -352,7 +355,7 @@ def plot_quality_vs_confidence(in_path, out_prefix):
                         markeredgewidth=2)
         lines.append(line)
         labels.append(dataset['dataset'])
-    plt.legend(lines, labels, bbox_to_anchor=(0, 0.8, 1, 0.2), loc="upper left",
+    plt.legend(lines, replace_dataset_name(labels), bbox_to_anchor=(0, -0.05, 1.05, 0.2), loc="lower left",
                mode="expand", ncol=2, framealpha=0, fontsize=15)
     with PdfPages(out_prefix + "speedup_vs_confidence.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
@@ -370,7 +373,7 @@ def plot_quality_vs_confidence(in_path, out_prefix):
     ax.xaxis.set_tick_params(width=1, which='major', length=5.4, labelsize=15)
     ax.xaxis.set_tick_params(width=1, which='minor', length=3.7)
     ax.set_ylabel('Precision', fontsize=15, labelpad=0)
-    ax.set_xlabel('Confidence', fontsize=15, labelpad=0)
+    ax.set_xlabel('thres', fontsize=15, labelpad=0)
 
     fig.subplots_adjust(bottom=0.15)
     lines = []
@@ -385,7 +388,7 @@ def plot_quality_vs_confidence(in_path, out_prefix):
                         markeredgewidth=1)
         lines.append(line)
         labels.append(dataset['dataset'])
-    plt.legend(lines, labels, bbox_to_anchor=(0, -0.06, 1.0, 0.2),
+    plt.legend(lines, replace_dataset_name(labels), bbox_to_anchor=(0, -0.06, 1.05, 0.2),
                loc="lower left", mode="expand", ncol=2, framealpha=0,
                fontsize=15)
     with PdfPages(out_prefix + "precision_vs_confidence.pdf") as pdf:
@@ -404,7 +407,7 @@ def plot_quality_vs_confidence(in_path, out_prefix):
     ax.xaxis.set_tick_params(width=1, which='major', length=6, labelsize=15)
     ax.xaxis.set_tick_params(width=1, which='minor', length=4)
     ax.set_ylabel('Score Error', fontsize=15, labelpad=0)
-    ax.set_xlabel('Confidence', fontsize=15, labelpad=0)
+    ax.set_xlabel('thres', fontsize=15, labelpad=0)
 
     fig.subplots_adjust(bottom=0.15)
     lines = []
@@ -418,25 +421,24 @@ def plot_quality_vs_confidence(in_path, out_prefix):
                         markeredgewidth=2)
         lines.append(line)
         labels.append(dataset['dataset'])
-    plt.legend(lines, labels, bbox_to_anchor=(0, 0.8, 1, 0.2), loc="upper left",
+    plt.legend(lines, replace_dataset_name(labels), bbox_to_anchor=(0, 0.8, 1.05, 0.2), loc="upper left",
                mode="expand", ncol=2, framealpha=0, fontsize=15)
     with PdfPages(out_prefix + "score_error_vs_confidence.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
 
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
     ax.set_xlim([0.5, 1])
-    ax.set_ylim([-0.5, 10])
+    ax.set_ylim([-0.5, 3])
     ax.xaxis.set_minor_locator(MultipleLocator(0.05))
     ax.xaxis.set_minor_formatter(NullFormatter())
     ax.yaxis.set_major_locator(MultipleLocator(1))
-    ax.yaxis.set_minor_locator(MultipleLocator(0.2))
     ax.yaxis.set_minor_formatter(NullFormatter())
     ax.yaxis.set_tick_params(width=1, which='major', length=6, labelsize=15)
     ax.yaxis.set_tick_params(width=1, which='minor', length=4)
     ax.xaxis.set_tick_params(width=1, which='major', length=6, labelsize=15)
     ax.xaxis.set_tick_params(width=1, which='minor', length=4)
     ax.set_ylabel('Rank Distance', fontsize=15, labelpad=0)
-    ax.set_xlabel('Confidence', fontsize=15, labelpad=0)
+    ax.set_xlabel('thres', fontsize=15, labelpad=0)
 
     fig.subplots_adjust(bottom=0.15)
     lines = []
@@ -451,9 +453,149 @@ def plot_quality_vs_confidence(in_path, out_prefix):
                         markeredgewidth=2)
         lines.append(line)
         labels.append(dataset['dataset'])
-    plt.legend(lines, labels, bbox_to_anchor=(0, 0.8, 1, 0.2), loc="upper left",
+    plt.legend(lines, replace_dataset_name(labels), bbox_to_anchor=(0, 0.8, 1.05, 0.2), loc="upper left",
                mode="expand", ncol=2, framealpha=0, fontsize=15)
     with PdfPages(out_prefix + "rank_distance_vs_confidence.pdf") as pdf:
+        pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
+
+def plot_quality_vs_window(in_path, out_prefix):
+    with open(in_path, 'rt') as f:
+        result = json.load(f)
+
+    global realdata
+    result = [dataset for dataset in result if dataset["dataset"] in realdata]
+
+    fig, ax = plt.subplots(figsize=(5.4, 3.7))
+    ax.set_xlim([0, 18001])
+    ax.set_ylim([0, 60])
+    ax.xaxis.set_minor_locator(MultipleLocator(2000))
+    ax.xaxis.set_minor_formatter(NullFormatter())
+    ax.yaxis.set_minor_locator(MultipleLocator(5))
+    ax.yaxis.set_minor_formatter(NullFormatter())
+    ax.yaxis.set_tick_params(width=1, which='major', length=5.4, labelsize=15)
+    ax.yaxis.set_tick_params(width=1, which='minor', length=3.7)
+    ax.xaxis.set_tick_params(which='major', length=5.4, labelsize=15)
+    ax.xaxis.set_tick_params(width=1, which='minor', length=3.7)
+    ax.set_ylabel('Speedup', fontsize=15, labelpad=0)
+    ax.set_xlabel('Window', fontsize=15, labelpad=0)
+
+    fig.subplots_adjust(bottom=0.15)
+    lines = []
+    labels = []
+    for i, dataset in enumerate(result):
+        window = dataset["window"]
+        runtime = dataset["runtime"]
+        prev_runtime = runtime["split"] + runtime["train"] + runtime["infer"]
+        prev_runtime += 7000 / 30
+        runtime_i = [t + prev_runtime for t in runtime["topk"]]
+        speedup = [runtime["baseline"] / t for t in runtime_i]
+        line, = ax.plot(window, speedup, styles[i], linewidth=LINEWIDTH,
+                        color="black", marker=makers[i % len(makers)],
+                        fillstyle=fillstyle[i % len(fillstyle)], markersize=12,
+                        markeredgewidth=2)
+        lines.append(line)
+        labels.append(dataset['dataset'])
+    plt.legend(lines, replace_dataset_name(labels), bbox_to_anchor=(0, 0.8, 1.05, 0.2), loc="upper left",
+               mode="expand", ncol=2, framealpha=0, fontsize=15)
+    with PdfPages(out_prefix + "window_vs_speedup.pdf") as pdf:
+        pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
+
+    fig, ax = plt.subplots(figsize=(5.4, 3.7))
+    ax.set_yticks(np.arange(0, 1.1, 0.1))
+    ax.set_xlim([0, 18001])
+    ax.set_ylim([0, 1.05])
+    ax.xaxis.set_minor_locator(MultipleLocator(2000))
+    ax.xaxis.set_minor_formatter(NullFormatter())
+    ax.yaxis.set_minor_locator(MultipleLocator(0.05))
+    ax.yaxis.set_minor_formatter(NullFormatter())
+    ax.yaxis.set_tick_params(width=1, which='major', length=5.4, labelsize=15)
+    ax.yaxis.set_tick_params(width=1, which='minor', length=3.7)
+    ax.xaxis.set_tick_params(width=1, which='major', length=5.4, labelsize=15)
+    ax.xaxis.set_tick_params(width=1, which='minor', length=3.7)
+    ax.set_ylabel('Precision', fontsize=15, labelpad=0)
+    ax.set_xlabel('Window', fontsize=15, labelpad=0)
+
+    fig.subplots_adjust(bottom=0.15)
+    lines = []
+    labels = []
+
+    for i, dataset in enumerate(result):
+        window = dataset["window"]
+        precision = dataset["precision"]
+        line, = ax.plot(window, precision, styles[i], linewidth=LINEWIDTH,
+                        color="black", marker=makers[i % len(makers)],
+                        fillstyle=fillstyle[i % len(fillstyle)], markersize=13,
+                        markeredgewidth=1)
+        lines.append(line)
+        labels.append(dataset['dataset'])
+    plt.legend(lines, replace_dataset_name(labels), bbox_to_anchor=(0, -0.06, 1.05, 0.2),
+               loc="lower left", mode="expand", ncol=2, framealpha=0,
+               fontsize=15)
+    with PdfPages(out_prefix + "window_vs_precision.pdf") as pdf:
+        pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
+
+    fig, ax = plt.subplots(figsize=(5.4, 3.7))
+    ax.set_xlim([0, 18001])
+    ax.set_ylim([0, 2])
+    ax.xaxis.set_minor_locator(MultipleLocator(2000))
+    ax.xaxis.set_minor_formatter(NullFormatter())
+    ax.yaxis.set_major_locator(MultipleLocator(0.5))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.yaxis.set_minor_formatter(NullFormatter())
+    ax.yaxis.set_tick_params(width=1, which='major', length=6, labelsize=15)
+    ax.yaxis.set_tick_params(width=1, which='minor', length=4)
+    ax.xaxis.set_tick_params(width=1, which='major', length=6, labelsize=15)
+    ax.xaxis.set_tick_params(width=1, which='minor', length=4)
+    ax.set_ylabel('Score Error', fontsize=15, labelpad=0)
+    ax.set_xlabel('Window', fontsize=15, labelpad=0)
+
+    fig.subplots_adjust(bottom=0.15)
+    lines = []
+    labels = []
+    for i, dataset in enumerate(result):
+        window = dataset["window"]
+        score_error = dataset["score error"]
+        line, = ax.plot(window, score_error, styles[i], linewidth=LINEWIDTH,
+                        color="black", marker=makers[i % len(makers)],
+                        fillstyle=fillstyle[i % len(fillstyle)], markersize=12,
+                        markeredgewidth=2)
+        lines.append(line)
+        labels.append(dataset['dataset'])
+    plt.legend(lines, replace_dataset_name(labels), bbox_to_anchor=(0, 0.8, 1.05, 0.2), loc="upper left",
+               mode="expand", ncol=2, framealpha=0, fontsize=15)
+    with PdfPages(out_prefix + "window_vs_score_error.pdf") as pdf:
+        pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
+
+    fig, ax = plt.subplots(figsize=(5.4, 3.7))
+    ax.set_xlim([0, 18001])
+    ax.set_ylim([-0.5, 30])
+    ax.xaxis.set_minor_locator(MultipleLocator(2000))
+    ax.xaxis.set_minor_formatter(NullFormatter())
+    ax.yaxis.set_major_locator(MultipleLocator(5))
+    ax.yaxis.set_minor_formatter(NullFormatter())
+    ax.yaxis.set_tick_params(width=1, which='major', length=6, labelsize=15)
+    ax.yaxis.set_tick_params(width=1, which='minor', length=4)
+    ax.xaxis.set_tick_params(width=1, which='major', length=6, labelsize=15)
+    ax.xaxis.set_tick_params(width=1, which='minor', length=4)
+    ax.set_ylabel('Rank Distance', fontsize=15, labelpad=0)
+    ax.set_xlabel('Window', fontsize=15, labelpad=0)
+
+    fig.subplots_adjust(bottom=0.15)
+    lines = []
+    labels = []
+    for i, dataset in enumerate(result):
+        window = dataset["window"]
+        rank_distance = dataset["rank distance"]
+        line, = ax.plot(window, rank_distance, styles[i],
+                        linewidth=LINEWIDTH,
+                        color="black", marker=makers[i % len(makers)],
+                        fillstyle=fillstyle[i % len(fillstyle)], markersize=12,
+                        markeredgewidth=2)
+        lines.append(line)
+        labels.append(dataset['dataset'])
+    plt.legend(lines, replace_dataset_name(labels), bbox_to_anchor=(0, 0.8, 1.05, 0.2), loc="upper left",
+               mode="expand", ncol=2, framealpha=0, fontsize=15)
+    with PdfPages(out_prefix + "window_vs_rank_distance.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
 
 def plot_quality_vs_num_object(in_path,k, out_prefix):
@@ -596,4 +738,4 @@ if __name__ == "__main__":
     plot_quality_vs_k("result/quality_vs_k.json", "result/fig/")
     plot_quality_vs_confidence("result/quality_vs_confidence.json", "result/fig/")
     plot_quality_vs_num_object("result/vir_quality_vs_k.json", 50, "result/fig/")
-
+    plot_quality_vs_window("result/quality_vs_window.json", "result/fig/")
