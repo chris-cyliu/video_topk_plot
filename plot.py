@@ -16,7 +16,7 @@ BAR_FILL_COLOR = ["black", "white", "white", "white","white", "white", "white"]
 fillstyle = ["none", "full"]
 LINEWIDTH = 1
 PRECISION_Y_AXLE = 100
-RANK_DISTANCE_Y_AXLE = 15
+RANK_DISTANCE_Y_AXLE = 10
 SCORE_ERROR_Y_AXLE = 100
 realdata = set()
 
@@ -73,15 +73,16 @@ def plot_overall(in_path, out_prefix, k, bar_width=0.3):
     x_pos = np.arange(len(result))
 
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
-
     ax.bar(x_pos - bar_width / 2 * 1.1, baseline, color="#FFFFFF", edgecolor="#000000",
            width=bar_width, align='center')
     ax.bar(x_pos + bar_width / 2 * 1.1, everest, color="#000000", width=bar_width,
            align='center')
     ax.set_ylabel('runtime(s)', fontsize=15, labelpad=0)
     ax.set_yscale('log')
-    ax.set_yticks([10 ** i for i in range(3, 7)])
+    ax.set_ylim([10**2, 10**5 +100000])
+    ax.set_yticks([10 ** i for i in range(3, 6)])
     ax.set_xticks(x_pos)
+
     ax.set_xticklabels(dataset_name, fontsize=8, rotation=30, ha="right")
     ax.xaxis.set_tick_params(width=1, which='both', length=4, labelsize=15)
     ax.yaxis.set_tick_params(width=1, which='major', length=6, labelsize=15)
@@ -195,7 +196,7 @@ def plot_quality_vs_k(in_path, out_prefix):
 
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
     ax.set_xlim([5, 100])
-    ax.set_ylim([-4, 30])
+    ax.set_ylim([-4, 20])
     ax.xaxis.set_minor_locator(MultipleLocator(5))
     ax.xaxis.set_minor_formatter(NullFormatter())
     ax.yaxis.set_minor_locator(MultipleLocator(5))
@@ -228,7 +229,7 @@ def plot_quality_vs_k(in_path, out_prefix):
                         markeredgewidth=2)
         lines.append(line)
         labels.append(dataset['dataset'])
-    plt.legend(lines, replace_dataset_name(labels), bbox_to_anchor=(0, -0.1, 1.05, 0.2), loc="lower left",
+    plt.legend(lines, replace_dataset_name(labels), bbox_to_anchor=(0, 0, 1.05, 0.2), loc="lower left",
            mode="expand", ncol=2, fontsize=15, framealpha=0)
     with PdfPages(out_prefix + "speedup_vs_k.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
@@ -339,7 +340,7 @@ def plot_quality_vs_confidence(in_path, out_prefix):
 
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
     ax.set_xlim([0.5, 1])
-    ax.set_ylim([-3, 25])
+    ax.set_ylim([-3, 15])
     ax.xaxis.set_minor_locator(MultipleLocator(0.05))
     ax.xaxis.set_minor_formatter(NullFormatter())
     ax.yaxis.set_minor_locator(MultipleLocator(5))
@@ -483,7 +484,7 @@ def plot_quality_vs_window(in_path, out_prefix):
 
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
     ax.set_xlim([0, 18001])
-    ax.set_ylim([0, 60])
+    ax.set_ylim([-4, 20])
     ax.xaxis.set_minor_locator(MultipleLocator(2000))
     ax.xaxis.set_minor_formatter(NullFormatter())
     ax.yaxis.set_minor_locator(MultipleLocator(5))
@@ -516,7 +517,7 @@ def plot_quality_vs_window(in_path, out_prefix):
                         markeredgewidth=2)
         lines.append(line)
         labels.append(dataset['dataset'])
-    plt.legend(lines, replace_dataset_name(labels), bbox_to_anchor=(0, 0.8, 1.05, 0.2), loc="upper left",
+    plt.legend(lines, replace_dataset_name(labels), bbox_to_anchor=(0, -0.1, 1.05, 0.2), loc="lower left",
                mode="expand", ncol=2, framealpha=0, fontsize=15)
     with PdfPages(out_prefix + "window_vs_speedup.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
@@ -652,7 +653,7 @@ def plot_quality_vs_num_object(in_path,k, out_prefix):
     ax.yaxis.set_tick_params(width=1, which='minor', length=3.7)
     ax.xaxis.set_tick_params(width=1, which='major', length=6, labelsize=15)
     ax.set_ylabel('Speedup', fontsize=15, labelpad=0)
-
+    ax.set_xlabel('Number of object', fontsize=15, labelpad=0)
     fig.subplots_adjust(bottom=0.15)
 
     speedup = []
@@ -663,7 +664,7 @@ def plot_quality_vs_num_object(in_path,k, out_prefix):
     for idx, y_pos in enumerate(bar_y_pos):
         plt.bar(y_pos, speedup[idx], hatch=BAR_FILL_HATCH[idx % len(BAR_FILL_HATCH)],
                 color=BAR_FILL_COLOR[idx % len(BAR_FILL_COLOR)], edgecolor='black')
-    plt.xticks(bar_y_pos, tmp_dataset_name, rotation=30, ha="right")
+    plt.xticks(bar_y_pos, tmp_dataset_name)
 
     with PdfPages(out_prefix + "numObj_vs_speedup.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
@@ -678,7 +679,7 @@ def plot_quality_vs_num_object(in_path,k, out_prefix):
     ax.yaxis.set_tick_params(width=1, which='minor', length=3.7)
     ax.xaxis.set_tick_params(width=1, which='major', length=6, labelsize=15)
     ax.set_ylabel('Precision (%)', fontsize=15, labelpad=0)
-
+    ax.set_xlabel('Number of object', fontsize=15, labelpad=0)
     fig.subplots_adjust(bottom=0.15)
 
     bar_y_pos = np.arange(len(tmp_dataset_name))
@@ -687,7 +688,7 @@ def plot_quality_vs_num_object(in_path,k, out_prefix):
                 hatch=BAR_FILL_HATCH[idx % len(BAR_FILL_HATCH)],
                 color=BAR_FILL_COLOR[idx % len(BAR_FILL_COLOR)],
                 edgecolor='black')
-    plt.xticks(bar_y_pos, tmp_dataset_name, rotation=30, ha="right")
+    plt.xticks(bar_y_pos, tmp_dataset_name)
 
     with PdfPages(out_prefix + "numObj_vs_precision.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
@@ -703,16 +704,19 @@ def plot_quality_vs_num_object(in_path,k, out_prefix):
     ax.yaxis.set_tick_params(width=1, which='minor', length=3.7)
     ax.xaxis.set_tick_params(width=1, which='major', length=6, labelsize=15)
     ax.set_ylabel('Score error', fontsize=15, labelpad=0)
-
+    ax.set_xlabel('Number of object', fontsize=15, labelpad=0)
     fig.subplots_adjust(bottom=0.15)
 
     bar_y_pos = np.arange(len(tmp_dataset_name))
     for idx, y_pos in enumerate(bar_y_pos):
-        plt.bar(y_pos, score_errors[idx]*100,
+        score_error = score_errors[idx]
+        if score_error < 0.02:
+            score_error = 0.01
+        plt.bar(y_pos, score_error*100,
                 hatch=BAR_FILL_HATCH[idx % len(BAR_FILL_HATCH)],
                 color=BAR_FILL_COLOR[idx % len(BAR_FILL_COLOR)],
                 edgecolor='black')
-    plt.xticks(bar_y_pos, tmp_dataset_name, rotation=30, ha="right")
+    plt.xticks(bar_y_pos, tmp_dataset_name)
 
     with PdfPages(out_prefix + "numObj_vs_score_error.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
@@ -728,16 +732,19 @@ def plot_quality_vs_num_object(in_path,k, out_prefix):
     ax.yaxis.set_tick_params(width=1, which='minor', length=3.7)
     ax.xaxis.set_tick_params(width=1, which='major', length=6, labelsize=15)
     ax.set_ylabel('Rank distance', fontsize=15, labelpad=0)
-
+    ax.set_xlabel('Number of object', fontsize=15, labelpad=0)
     fig.subplots_adjust(bottom=0.15)
 
     bar_y_pos = np.arange(len(tmp_dataset_name))
     for idx, y_pos in enumerate(bar_y_pos):
-        plt.bar(y_pos, rank_distances[idx],
+        rank_distance = rank_distances[idx]
+        if rank_distances[idx] < 1:
+            rank_distance = 0.2
+        plt.bar(y_pos, rank_distance,
                 hatch=BAR_FILL_HATCH[idx % len(BAR_FILL_HATCH)],
                 color=BAR_FILL_COLOR[idx % len(BAR_FILL_COLOR)],
                 edgecolor='black')
-    plt.xticks(bar_y_pos, tmp_dataset_name, rotation=30, ha="right")
+    plt.xticks(bar_y_pos, tmp_dataset_name)
 
     with PdfPages(out_prefix + "numObj_vs_rank_distance.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
