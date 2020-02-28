@@ -11,8 +11,8 @@ mpl.rc("font", family='sans-serif')
 # chris: global makers list
 makers = ["d", "x", "s", "^", "+", ">", "o"]
 styles = ['-', '--', '-.', '-', '--', '-.', '-']
-BAR_FILL_HATCH = [None, "\\", None, "/", '+', 'o']
-BAR_FILL_COLOR = ["black", "white", "white", "white"]
+BAR_FILL_HATCH = [None, "\\", None, "/", '.', '+', 'o']
+BAR_FILL_COLOR = ["black", "white", "white", "white","white", "white", "white"]
 fillstyle = ["none", "full"]
 LINEWIDTH = 1
 PRECISION_Y_AXLE = 100
@@ -55,17 +55,21 @@ def select_dataset(k_path, conf_path):
 def plot_overall(in_path, out_prefix, k, bar_width=0.3):
     with open(in_path, 'rt') as f:
         result = json.load(f)
-    idx = None
+    k_idx = None
     for i, ki in enumerate(result[0]["k"]):
         if ki == k:
-            idx = i
+            k_idx = i
+            break
 
     global realdata
     result = [dataset for dataset in result if dataset["dataset"] in realdata]
 
     dataset_name = replace_dataset_name([dataset["dataset"] for dataset in result])
-    baseline = [dataset["runtime"]["baseline"] for dataset in result]
-    everest = [dataset["runtime"]["split"] + dataset["runtime"]["train"] + dataset["runtime"]["infer"] + dataset["runtime"]["cdf"][idx] + dataset["runtime"]["selection"][idx] + dataset["runtime"]["update bound"][idx] + dataset["runtime"]["inference"][idx] + 5000 / 30 for dataset in result]
+    baseline = [dataset["runtime"]["baseline"]/2.7667 for dataset in result]
+    everest = [dataset["runtime"]["split"] + dataset["runtime"]["train"] +
+               dataset["runtime"]["infer"] + dataset["runtime"]["cdf"][k_idx] +
+               dataset["runtime"]["selection"][k_idx] + dataset["runtime"]["update bound"][k_idx] +
+               dataset["runtime"]["cleaned frames"][k_idx] * 0.0127 + 5000 / 83 for dataset in result]
     x_pos = np.arange(len(result))
 
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
@@ -78,7 +82,7 @@ def plot_overall(in_path, out_prefix, k, bar_width=0.3):
     ax.set_yscale('log')
     ax.set_yticks([10 ** i for i in range(3, 7)])
     ax.set_xticks(x_pos)
-    ax.set_xticklabels(dataset_name, fontsize=8, rotation=30)
+    ax.set_xticklabels(dataset_name, fontsize=8, rotation=30, ha="right")
     ax.xaxis.set_tick_params(width=1, which='both', length=4, labelsize=15)
     ax.yaxis.set_tick_params(width=1, which='major', length=6, labelsize=15)
     ax.yaxis.set_tick_params(width=1, which='minor', length=4)
@@ -99,7 +103,7 @@ def plot_overall(in_path, out_prefix, k, bar_width=0.3):
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
 
     # Start Precision#
-    precisions = [dataset["precision"][idx] for dataset in result]
+    precisions = [dataset["precision"][k_idx] for dataset in result]
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
     ax.set_ylim([0, PRECISION_Y_AXLE])
     ax.yaxis.set_major_locator(MultipleLocator(20))
@@ -117,14 +121,14 @@ def plot_overall(in_path, out_prefix, k, bar_width=0.3):
                 hatch=BAR_FILL_HATCH[idx % len(BAR_FILL_HATCH)],
                 color=BAR_FILL_COLOR[idx % len(BAR_FILL_COLOR)],
                 edgecolor='black')
-    plt.xticks(bar_y_pos, dataset_name, rotation=30)
+    plt.xticks(bar_y_pos, dataset_name, rotation=30, ha="right")
 
     with PdfPages(out_prefix + "overall_precision.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
     # End Precision#
 
     # Start Score error#
-    score_errors = [dataset["score error"][idx] for dataset in result]
+    score_errors = [dataset["score error"][k_idx] for dataset in result]
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
     ax.set_ylim([0, SCORE_ERROR_Y_AXLE])
     ax.yaxis.set_major_locator(MultipleLocator(20))
@@ -146,14 +150,14 @@ def plot_overall(in_path, out_prefix, k, bar_width=0.3):
                 hatch=BAR_FILL_HATCH[idx % len(BAR_FILL_HATCH)],
                 color=BAR_FILL_COLOR[idx % len(BAR_FILL_COLOR)],
                 edgecolor='black')
-    plt.xticks(bar_y_pos, dataset_name, rotation=30)
+    plt.xticks(bar_y_pos, dataset_name, rotation=30, ha="right")
 
     with PdfPages(out_prefix + "overall_score_error.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
     # End Score error#
 
     # Start Rank distance#
-    rank_distances = [dataset["rank distance"][idx] for dataset in result]
+    rank_distances = [dataset["rank distance"][k_idx] for dataset in result]
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
     ax.set_ylim([0, RANK_DISTANCE_Y_AXLE])
     ax.yaxis.set_major_locator(MultipleLocator(5))
@@ -175,7 +179,7 @@ def plot_overall(in_path, out_prefix, k, bar_width=0.3):
                 hatch=BAR_FILL_HATCH[idx % len(BAR_FILL_HATCH)],
                 color=BAR_FILL_COLOR[idx % len(BAR_FILL_COLOR)],
                 edgecolor='black')
-    plt.xticks(bar_y_pos, dataset_name, rotation=30)
+    plt.xticks(bar_y_pos, dataset_name, rotation=30, ha="right")
 
     with PdfPages(out_prefix + "overall_rank_distance.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
@@ -214,9 +218,9 @@ def plot_quality_vs_k(in_path, out_prefix):
         runtime_i = [dataset["runtime"]["cdf"][idx] + \
                         dataset["runtime"]["selection"][idx] + \
                         dataset["runtime"]["update bound"][idx] + \
-                        dataset["runtime"]["inference"][idx] + 5000 / 30
+                        dataset["runtime"]["cleaned frames"][idx] * 0.0127 + 5000 / 83
                         + prev_runtime for idx, v in enumerate(k)]
-        speedup = [runtime["baseline"] / t for t in runtime_i]
+        speedup = [runtime["baseline"]/2.7667 / t for t in runtime_i]
         line, = ax.plot(k, speedup, styles[i], linewidth=LINEWIDTH,
                         color="black",
                         marker=makers[i % len(makers)],
@@ -359,9 +363,9 @@ def plot_quality_vs_confidence(in_path, out_prefix):
         runtime_i = [dataset["runtime"]["cdf"][idx] + \
                      dataset["runtime"]["selection"][idx] + \
                      dataset["runtime"]["update bound"][idx] + \
-                     dataset["runtime"]["inference"][idx] + 5000 / 30
+                     dataset["runtime"]["cleaned frames"][idx] * 0.0127 + 5000 / 83
                      + prev_runtime for idx, v in enumerate(confidence)]
-        speedup = [runtime["baseline"] / t for t in runtime_i]
+        speedup = [runtime["baseline"]/2.7667 / t for t in runtime_i]
         line, = ax.plot(confidence, speedup, styles[i], linewidth=LINEWIDTH,
                         color="black", marker=makers[i % len(makers)],
                         fillstyle=fillstyle[i % len(fillstyle)], markersize=12,
@@ -503,9 +507,9 @@ def plot_quality_vs_window(in_path, out_prefix):
         runtime_i = [dataset["runtime"]["cdf"][idx] + \
                      dataset["runtime"]["selection"][idx] + \
                      dataset["runtime"]["update bound"][idx] + \
-                     dataset["runtime"]["inference"][idx] + 5000 / 30
+                     dataset["runtime"]["cleaned frames"][idx] * 0.0127 + 5000 / 83
                      + prev_runtime for idx, v in enumerate(window)]
-        speedup = [runtime["baseline"] / t for t in runtime_i]
+        speedup = [runtime["baseline"]/2.7667 / t for t in runtime_i]
         line, = ax.plot(window, speedup, styles[i], linewidth=LINEWIDTH,
                         color="black", marker=makers[i % len(makers)],
                         fillstyle=fillstyle[i % len(fillstyle)], markersize=12,
@@ -633,8 +637,9 @@ def plot_quality_vs_num_object(in_path,k, out_prefix):
         rank_distances = []
         score_errors = []
         for dataset in result:
-            tmp_dataset_name.append(dataset["dataset"])
-            runtimes.append(dataset["runtime"]["split"] + dataset["runtime"]["train"] + dataset["runtime"]["infer"] + dataset["runtime"]["cdf"][idx_of_k] + dataset["runtime"]["selection"][idx_of_k] + dataset["runtime"]["update bound"][idx_of_k] + dataset["runtime"]["inference"][idx_of_k] + 5000 / 30)
+            tmp_dataset_name.append(dataset["dataset"][4:])
+            runtimes.append(dataset["runtime"]["split"] + dataset["runtime"]["train"] + dataset["runtime"]["infer"] + dataset["runtime"]["cdf"][idx_of_k] + dataset["runtime"]["selection"][idx_of_k] + dataset["runtime"]["update bound"][idx_of_k] +
+                            dataset["runtime"]["cleaned frames"][idx_of_k] * 0.0127 + 5000 / 83)
             runtime_metas.append(dataset["runtime"])
             precisions.append(dataset["precision"][idx_of_k])
             rank_distances.append(dataset["rank distance"][idx_of_k])
@@ -652,13 +657,13 @@ def plot_quality_vs_num_object(in_path,k, out_prefix):
 
     speedup = []
     for idx, runtime in enumerate(runtime_metas):
-        speedup.append(runtime["baseline"] / runtimes[idx])
+        speedup.append(runtime["baseline"]/2.7667 / runtimes[idx])
 
     bar_y_pos = np.arange(len(tmp_dataset_name))
     for idx, y_pos in enumerate(bar_y_pos):
         plt.bar(y_pos, speedup[idx], hatch=BAR_FILL_HATCH[idx % len(BAR_FILL_HATCH)],
                 color=BAR_FILL_COLOR[idx % len(BAR_FILL_COLOR)], edgecolor='black')
-    plt.xticks(bar_y_pos, tmp_dataset_name, rotation=30)
+    plt.xticks(bar_y_pos, tmp_dataset_name, rotation=30, ha="right")
 
     with PdfPages(out_prefix + "numObj_vs_speedup.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
@@ -682,7 +687,7 @@ def plot_quality_vs_num_object(in_path,k, out_prefix):
                 hatch=BAR_FILL_HATCH[idx % len(BAR_FILL_HATCH)],
                 color=BAR_FILL_COLOR[idx % len(BAR_FILL_COLOR)],
                 edgecolor='black')
-    plt.xticks(bar_y_pos, tmp_dataset_name, rotation=30)
+    plt.xticks(bar_y_pos, tmp_dataset_name, rotation=30, ha="right")
 
     with PdfPages(out_prefix + "numObj_vs_precision.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
@@ -707,7 +712,7 @@ def plot_quality_vs_num_object(in_path,k, out_prefix):
                 hatch=BAR_FILL_HATCH[idx % len(BAR_FILL_HATCH)],
                 color=BAR_FILL_COLOR[idx % len(BAR_FILL_COLOR)],
                 edgecolor='black')
-    plt.xticks(bar_y_pos, tmp_dataset_name, rotation=30)
+    plt.xticks(bar_y_pos, tmp_dataset_name, rotation=30, ha="right")
 
     with PdfPages(out_prefix + "numObj_vs_score_error.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
@@ -732,7 +737,7 @@ def plot_quality_vs_num_object(in_path,k, out_prefix):
                 hatch=BAR_FILL_HATCH[idx % len(BAR_FILL_HATCH)],
                 color=BAR_FILL_COLOR[idx % len(BAR_FILL_COLOR)],
                 edgecolor='black')
-    plt.xticks(bar_y_pos, tmp_dataset_name, rotation=30)
+    plt.xticks(bar_y_pos, tmp_dataset_name, rotation=30, ha="right")
 
     with PdfPages(out_prefix + "numObj_vs_rank_distance.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0)
