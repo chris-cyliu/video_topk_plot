@@ -220,6 +220,7 @@ def plot_quality_vs_k(in_path, out_prefix):
                         dataset["runtime"]["cleaned frames"][idx] * 0.0127 + 5000 / 83
                         + prev_runtime for idx, v in enumerate(k)]
         speedup = [runtime["baseline"]/2.7667 / t for t in runtime_i]
+
         line, = ax.plot(k, speedup, styles[i], linewidth=LINEWIDTH,
                         color="black",
                         marker=makers[i % len(makers)],
@@ -230,16 +231,16 @@ def plot_quality_vs_k(in_path, out_prefix):
     plt.legend(lines, replace_dataset_name(labels), bbox_to_anchor=(0, 0, 1.05, 0.2), loc="lower left",
            mode="expand", ncol=2, fontsize=15, framealpha=0)
 
-    yticks = ax.get_yticks().tolist()
-    ax.set_yticklabels(["%dx" % y for y in yticks])
-
     ax.set_ylim(ymin=-4)
 
     xticks = ax.get_xticks().tolist()
     xticks[0] = "%d " % xticks[0]
     xticks[1] = " %d" % xticks[1]
     ax.set_xticklabels(xticks)
-    
+
+    yticks = ax.get_yticks().tolist()
+    ax.set_yticklabels(["%dx" % y for y in yticks])
+
     with PdfPages(out_prefix + "speedup_vs_k.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0.01)
 
@@ -374,10 +375,6 @@ def plot_quality_vs_confidence(in_path, out_prefix):
     ax.set_ylabel('Speedup', fontsize=15, labelpad=0)
     ax.set_xlabel('thres', fontsize=15, labelpad=0)
 
-    yticks = ax.get_yticks().tolist()
-    ax.set_yticklabels(["%dx" % y for y in yticks])
-    
-
     fig.subplots_adjust(bottom=0.15)
     lines = []
     labels = []
@@ -401,6 +398,10 @@ def plot_quality_vs_confidence(in_path, out_prefix):
         labels.append(dataset['dataset'])
     plt.legend(lines, replace_dataset_name(labels), bbox_to_anchor=(0, -0.05, 1.05, 0.2), loc="lower left",
                mode="expand", ncol=2, framealpha=0, fontsize=15)
+
+    yticks = ax.get_yticks().tolist()
+    ax.set_yticklabels(["%dx" % y for y in yticks])
+
     with PdfPages(out_prefix + "speedup_vs_confidence.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0.01)
 
@@ -748,6 +749,7 @@ def plot_quality_vs_num_object(in_path,k, out_prefix):
         plt.bar(y_pos, speedup[idx], hatch=BAR_FILL_HATCH[idx % len(BAR_FILL_HATCH)],
                 color=BAR_FILL_COLOR[idx % len(BAR_FILL_COLOR)], edgecolor='black')
     plt.xticks(bar_y_pos, tmp_dataset_name)
+
     yticks = ax.get_yticks().tolist()
     ax.set_yticklabels(["%dx" % y for y in yticks])
 
