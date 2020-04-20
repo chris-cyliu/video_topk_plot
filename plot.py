@@ -36,6 +36,24 @@ def replace_dataset_name(dataset_name):
             ret.append(x)
     return ret
 
+def get_num_sampling(dataset_name, sampling_fraction):
+    num_frame = 0
+    if dataset_name == "Grand Canal":
+        num_frame = 2323729
+    if dataset_name == "Coral":
+        num_frame = 1843688
+    if dataset_name == "Taipei-bus":
+        num_frame = 1599999
+    if dataset_name == "archie":
+        num_frame = 2129578
+    if dataset_name == "GTRP":
+        num_frame = 813691
+    if dataset_name == "Irish-Center":
+        num_frame = 1569287
+    if num_frame == 0:
+        raise Exception(f"Unknow dataset {dataset_name}")
+
+    return int(round(num_frame * sampling_fraction))
 def select_dataset(k_path, conf_path):
     with open(k_path, 'r') as f:
         k_result = json.load(f)
@@ -47,7 +65,7 @@ def select_dataset(k_path, conf_path):
     for dataset in k_result:
         sign[dataset["dataset"]] = np.mean(dataset["precision"]) > 0.8
     for dataset in conf_result:
-        sign[dataset["dataset"]] &= np.mean(dataset["precision"]) > 0.8
+        sign[dataset["dataset"]] = np.mean(dataset["precision"]) > 0.8
     for k, v in sign.items():
         if v and not k.startswith("VIR") and k != "amsterdam":
             realdata.add(k)
@@ -68,11 +86,13 @@ def plot_overall(in_path, out_prefix, k, bar_width=0.3):
     result = [dataset for dataset in result if dataset["dataset"] in realdata]
 
     dataset_name = replace_dataset_name([dataset["dataset"] for dataset in result])
-    baseline = [dataset["runtime"]["baseline"]/2.7667 for dataset in result]
+    baseline = [dataset["runtime"]["baseline"] for dataset in result]
+
     everest = [dataset["runtime"]["split"] + dataset["runtime"]["train"] +
-               dataset["runtime"]["infer"]/1.6 + dataset["runtime"]["cdf"][k_idx] +
-               dataset["runtime"]["selection"][k_idx] + dataset["runtime"]["update bound"][k_idx] +
-               dataset["runtime"]["cleaned frames"][k_idx] * 0.0127 + 5000 / 83 for dataset in result]
+               dataset["runtime"]["infer"] + dataset["runtime"]["cdf"][k_idx] +
+               dataset["runtime"]["selection"][k_idx] +
+               dataset["runtime"]["inference"][k_idx] +
+               get_num_sampling(dataset["dataset"], 0.005) / 83 for dataset in result]
     x_pos = np.arange(len(result))
 
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
@@ -212,14 +232,12 @@ def plot_quality_vs_k(in_path, out_prefix):
     for i, dataset in enumerate(result):
         k = dataset["k"]
         runtime = dataset["runtime"]
-        prev_runtime = dataset["runtime"]["split"] + dataset["runtime"]["train"] + dataset["runtime"]["infer"]/1.6
-
-        runtime_i = [dataset["runtime"]["cdf"][idx] + \
+        runtime_i = [runtime['split'] + runtime['train'] + runtime['infer']+ \
+                        dataset["runtime"]["cdf"][idx] + \
                         dataset["runtime"]["selection"][idx] + \
-                        dataset["runtime"]["update bound"][idx] + \
-                        dataset["runtime"]["cleaned frames"][idx] * 0.0127 + 5000 / 83
-                        + prev_runtime for idx, v in enumerate(k)]
-        speedup = [runtime["baseline"]/2.7667 / t for t in runtime_i]
+                        dataset["runtime"]["inference"][idx] + \
+                        get_num_sampling(dataset["dataset"], 0.005)/ 83 for idx, v in enumerate(k)]
+        speedup = [runtime["baseline"] / t for t in runtime_i]
 
         line, = ax.plot(k, speedup, styles[i], linewidth=LINEWIDTH,
                         color="black",
@@ -381,15 +399,14 @@ def plot_quality_vs_confidence(in_path, out_prefix):
     for i, dataset in enumerate(result):
         confidence = dataset["conf"]
         runtime = dataset["runtime"]
-        prev_runtime = dataset["runtime"]["split"] + dataset["runtime"][
-            "train"] + dataset["runtime"]["infer"]/1.6
-
-        runtime_i = [dataset["runtime"]["cdf"][idx] + \
+        runtime_i = [runtime['split'] + runtime['train'] + runtime['infer'] + \
+                     dataset["runtime"]["cdf"][idx] + \
                      dataset["runtime"]["selection"][idx] + \
-                     dataset["runtime"]["update bound"][idx] + \
-                     dataset["runtime"]["cleaned frames"][idx] * 0.0127 + 5000 / 83
-                     + prev_runtime for idx, v in enumerate(confidence)]
-        speedup = [runtime["baseline"]/2.7667 / t for t in runtime_i]
+                     dataset["runtime"]["inference"][idx] + \
+                     get_num_sampling(dataset["dataset"], 0.005) / 83 for idx, v
+                     in enumerate(confidence)]
+
+        speedup = [runtime["baseline"] / t for t in runtime_i]
         line, = ax.plot(confidence, speedup, styles[i], linewidth=LINEWIDTH,
                         color="black", marker=makers[i % len(makers)],
                         fillstyle=fillstyle[i % len(fillstyle)], markersize=12,
@@ -570,15 +587,14 @@ def plot_quality_vs_window(in_path, in_var_k_path, default_k, out_prefix):
     for i, dataset in enumerate(result):
         window = dataset["window"]
         runtime = dataset["runtime"]
-        prev_runtime = dataset["runtime"]["split"] + dataset["runtime"][
-            "train"] + dataset["runtime"]["infer"]/1.6
-
-        runtime_i = [dataset["runtime"]["cdf"][idx] + \
+        runtime_i = [runtime['split'] + runtime['train'] + runtime['infer'] + \
+                     dataset["runtime"]["cdf"][idx] + \
                      dataset["runtime"]["selection"][idx] + \
-                     dataset["runtime"]["update bound"][idx] + \
-                     dataset["runtime"]["cleaned frames"][idx] * 0.0127 + 5000 / 83
-                     + prev_runtime for idx, v in enumerate(window)]
-        speedup = [runtime["baseline"]/2.7667 / t for t in runtime_i]
+                     dataset["runtime"]["inference"][idx] + \
+                     get_num_sampling(dataset["dataset"], 0.005) / 83 for idx, v
+                     in enumerate(window)]
+
+        speedup = [runtime["baseline"] / t for t in runtime_i]
         speedup[-2] = speedup[-1]
         line, = ax.plot(window, speedup, styles[i], linewidth=LINEWIDTH,
                         color="black", marker=makers[i % len(makers)],
@@ -724,8 +740,18 @@ def plot_quality_vs_num_object(in_path,k, out_prefix):
         score_errors = []
         for dataset in result:
             tmp_dataset_name.append(dataset["dataset"][4:])
-            runtimes.append(dataset["runtime"]["split"] + dataset["runtime"]["train"] + dataset["runtime"]["infer"]/1.6 + dataset["runtime"]["cdf"][idx_of_k] + dataset["runtime"]["selection"][idx_of_k] + dataset["runtime"]["update bound"][idx_of_k] +
-                            dataset["runtime"]["cleaned frames"][idx_of_k] * 0.0127 + 5000 / 83)
+
+            runtimes.append(runtimes.append(dataset["runtime"]['split'] +
+                                            dataset["runtime"]['train'] +
+                                            dataset["runtime"]['infer'] +
+                                            dataset["runtime"]["cdf"][
+                                                idx_of_k] +
+                                            dataset["runtime"]["selection"][
+                                                idx_of_k] +
+                                            dataset["runtime"]["inference"][
+                                                idx_of_k] +
+                                            get_num_sampling(dataset["dataset"],
+                                                             0.005) / 83))
             runtime_metas.append(dataset["runtime"])
             precisions.append(dataset["precision"][idx_of_k])
             rank_distances.append(dataset["rank distance"][idx_of_k])
@@ -742,7 +768,7 @@ def plot_quality_vs_num_object(in_path,k, out_prefix):
     fig.subplots_adjust(bottom=0.15)
     speedup = []
     for idx, runtime in enumerate(runtime_metas):
-        speedup.append(runtime["baseline"]/2.7667 / runtimes[idx])
+        speedup.append(runtime["baseline"] / runtimes[idx])
 
     bar_y_pos = np.arange(len(tmp_dataset_name))
     for idx, y_pos in enumerate(bar_y_pos):
@@ -856,8 +882,13 @@ def plot_quality_vs_scoring_func(in_path,k, out_prefix):
         score_errors = []
         for dataset in result:
             tmp_dataset_name.append(dataset["dataset"])
-            runtimes.append(dataset["runtime"]["split"] + dataset["runtime"]["train"] + dataset["runtime"]["infer"]/1.6 + dataset["runtime"]["cdf"][idx_of_k] + dataset["runtime"]["selection"][idx_of_k] + dataset["runtime"]["update bound"][idx_of_k] +
-                            dataset["runtime"]["cleaned frames"][idx_of_k] * 0.0127 + 5000 / 83)
+            runtimes.append(runtimes.append(dataset["runtime"]['split'] +
+                                            dataset["runtime"]['train'] +
+                                            dataset["runtime"]['infer'] +
+                                            dataset["runtime"]["cdf"][idx_of_k] +
+                                            dataset["runtime"]["selection"][idx_of_k] +
+                                            dataset["runtime"]["inference"][idx_of_k] +
+                                            get_num_sampling(dataset["dataset"], 0.005) / 83))
             runtime_metas.append(dataset["runtime"])
             precisions.append(dataset["precision"][idx_of_k])
             rank_distances.append(dataset["rank distance"][idx_of_k])
@@ -972,7 +1003,7 @@ if __name__ == "__main__":
                     "result/quality_vs_confidence.json")
     plot_overall("result/quality_vs_k.json", "result/fig/", default_k)
     plot_quality_vs_k("result/quality_vs_k.json", "result/fig/")
-    plot_quality_vs_confidence("result/quality_vs_confidence.json", "result/fig/")
-    plot_quality_vs_window("result/quality_vs_window_new.json", "result/quality_vs_k.json", default_k, "result/fig/")
-    plot_quality_vs_num_object("result/vir.json", default_k, "result/fig/")
-    plot_quality_vs_scoring_func("result/scoring_func.json", default_k, "result/fig/")
+    # plot_quality_vs_confidence("result/quality_vs_confidence.json", "result/fig/")
+    # plot_quality_vs_window("result/quality_vs_window_new.json", "result/quality_vs_k.json", default_k, "result/fig/")
+    # plot_quality_vs_num_object("result/vir.json", default_k, "result/fig/")
+    # plot_quality_vs_scoring_func("result/scoring_func.json", default_k, "result/fig/")
