@@ -48,7 +48,7 @@ def get_df_vs(path:str):
 def get_df_k(path: str):
     pds = []
     for dir in os.listdir(path):
-        if dir == "visualroad.json":
+        if dir in ["visualroad.json", "noscope.json"]:
             continue
         target_file = path+"/"+dir+"/"+K_FILE
         tmp_pd = pandas.read_json(target_file, lines=True, convert_dates=False)
@@ -61,7 +61,7 @@ def get_df_k(path: str):
 def get_df_conf(path: str):
     pds = []
     for dir in os.listdir(path):
-        if dir == "visualroad.json":
+        if dir in ["visualroad.json", "noscope.json"]:
             continue
         target_file = path+"/"+dir+"/"+CONF_FILE
         tmp_pd = pandas.read_json(target_file, lines=True, convert_dates=False)
@@ -99,7 +99,7 @@ def get_df_vary_length(path: str):
 def get_df_window(path: str):
     pds = []
     for dir in os.listdir(path):
-        if dir == "visualroad.json":
+        if dir in ["visualroad.json", "noscope.json"]:
             continue
         tmp_pd = pandas.read_json(path +"/"+dir + "/" + WINDOW_FILE, lines=True, convert_dates=False)
         tmp_pd = tmp_pd.loc[tmp_pd['window'] != 1]
@@ -113,6 +113,10 @@ def get_df_window(path: str):
         pds.append(tmp_pd)
 
     return pandas.concat(pds, ignore_index=True, sort=True)
+
+def get_df_noscope(path: str):
+    ret = pandas.read_json(path, lines=True, convert_dates=False)
+    return ret
 
 
 
@@ -180,19 +184,31 @@ def select_dataset(k_path, conf_path):
     print("valid real data:", realdata)
 
 
-def plot_overall(df, out_prefix, bar_width=0.3):
+def plot_overall(df, df_noscope, out_prefix, bar_width=0.3):
     dataset_names = df["dataset"].tolist()
-    dataset_names = replace_dataset_names(dataset_names)
 
     baseline = df["baseline"].tolist()
     max_baseline = df["baseline"].max()
     everest = df["runtime"].tolist()
+
+    # get noscope baseline
+    noscope = []
+    for tmp_dataset_name in dataset_names:
+        tmp_noscope_ret = df_noscope.loc[df_noscope["dataset"] == tmp_dataset_name, "runtime"].values
+        assert len(tmp_noscope_ret) == 1
+        noscope.append(tmp_noscope_ret[0])
+
+    dataset_names = replace_dataset_names(dataset_names)
+
     x_pos = np.arange(len(df))
 
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
-    ax.bar(x_pos - bar_width / 2 * 1.1, baseline, color="#FFFFFF", edgecolor="#000000",
+    ax.bar(x_pos - bar_width , baseline, color="#FFFFFF", edgecolor="#000000",
            width=bar_width, align='center')
-    ax.bar(x_pos + bar_width / 2 * 1.1, everest, color="#000000", width=bar_width,
+    ax.bar(x_pos, noscope, color="grey",
+           edgecolor="#000000",
+           width=bar_width, align='center')
+    ax.bar(x_pos + bar_width , everest, color="#000000", width=bar_width,
            align='center')
     ax.set_ylabel('runtime(s)', fontsize=15, labelpad=0)
     ax.set_yscale('log')
@@ -210,13 +226,20 @@ def plot_overall(df, out_prefix, bar_width=0.3):
             ax.transData.transform([i - bar_width / 2 * 1.1, y]))
         ax.text(coord[0], coord[1] + 0.02, "1.0x", horizontalalignment='center',
                 fontsize=15, color="grey", transform=ax.transAxes)
+
+    # for i, y in enumerate(noscope):
+    #     coord = ax.transAxes.inverted().transform(
+    #         ax.transData.transform([i - bar_width / 2 * 1.1, y]))
+    #     ax.text(coord[0], coord[1] + 0.02, "1.0x", horizontalalignment='center',
+    #             fontsize=15, color="white", transform=ax.transAxes)
+
     for i, y in enumerate(everest):
         coord = ax.transAxes.inverted().transform(
             ax.transData.transform([i + bar_width / 2 * 1.1, y]))
         ax.text(coord[0], coord[1] + 0.02, "%.1fx" % (baseline[i] / y),
                 horizontalalignment='center', fontsize=15, color="black",
                 transform=ax.transAxes)
-    ax.legend(["baseline", "Everest"], fontsize=15, framealpha=0)
+    ax.legend(["baseline", "noscope", "Everest"], fontsize=15, framealpha=0)
     with PdfPages(out_prefix+"overall_speedup.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0.01)
 
@@ -1182,7 +1205,8 @@ if __name__ == "__main__":
     df_k = get_df_k(resut_path)
     df = df_k.loc[df_k["k"] == default_k]
     df.set_index(["dataset"])
-    plot_overall(df.loc[df["k"] == default_k], "fig/")
+    df_noscope = get_df_noscope(resut_path + "/" + "noscope.json")
+    plot_overall(df.loc[df["k"] == default_k], df_noscope, "fig/")
 
     plot_quality_vs_k(df_k, "fig/")
 
