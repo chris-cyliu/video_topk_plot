@@ -41,8 +41,9 @@ VARY_LENGTH_DATASET = ["long_irish_center", "long_taipei_bus"]
 VIDEO_LENGTH = [10, 50, 100, 150, 300]
 
 def get_df_vs(path:str):
-    ret =  pandas.read_json(path, lines=True, convert_dates=False)
-    ret["dataset"] = ret["dataset"].str.extract(r'-(\d+)')
+    ret = pandas.read_json(path, lines=True, convert_dates=False)
+    ret["dataset"] = ret["dataset"].str.extract(r'-(\d+)').astype(int)
+    ret = ret.sort_values(by=["dataset"])
     return ret
 
 def get_df_k(path: str):
@@ -55,7 +56,7 @@ def get_df_k(path: str):
         pds.append(tmp_pd)
 
     ret = pandas.concat(pds, ignore_index=True, sort=True)
-
+    ret = ret.sort_values(by=["dataset"])
     return ret
 
 def get_df_conf(path: str):
@@ -68,7 +69,7 @@ def get_df_conf(path: str):
         pds.append(tmp_pd)
 
     ret = pandas.concat(pds, ignore_index=True, sort=True)
-
+    ret = ret.sort_values(by=["dataset"])
     return ret
 def get_df_score_func(path: str):
     pds = []
@@ -77,24 +78,26 @@ def get_df_score_func(path: str):
         tmp_pd = pandas.read_json(target_file, lines=True, convert_dates=False)
         pds.append(tmp_pd)
 
-    return pandas.concat(pds, ignore_index=True, sort=True)
+    ret = pandas.concat(pds, ignore_index=True, sort=True)
+    ret = ret.sort_values(by=["dataset"])
+    return ret
 
-def get_df_vary_length(path: str):
-    pds = []
-    for dataset in VARY_LENGTH_DATASET:
-        target_file = path+"/"+dataset+"/"+VARY_LENGHT_FILE
-        tmp_pd = pandas.read_json(target_file, lines=True, convert_dates=False)
-        video_length = tmp_pd["dataset"].str.extract(r'(\d+)')
-        tmp_pd["length"] = video_length.astype(int)
-        if dataset == "long_irish_center":
-            tmp_pd["dataset"] = "Irish-Center-long"
-        elif dataset == "long_taipei_bus":
-            tmp_pd["dataset"] = "Taipei-bus-long"
-        else:
-            raise Exception
-        pds.append(tmp_pd)
-
-    return pandas.concat(pds, ignore_index=True, sort=True)
+# def get_df_vary_length(path: str):
+#     pds = []
+#     for dataset in VARY_LENGTH_DATASET:
+#         target_file = path+"/"+dataset+"/"+VARY_LENGHT_FILE
+#         tmp_pd = pandas.read_json(target_file, lines=True, convert_dates=False)
+#         video_length = tmp_pd["dataset"].str.extract(r'(\d+)')
+#         tmp_pd["length"] = video_length.astype(int)
+#         if dataset == "long_irish_center":
+#             tmp_pd["dataset"] = "Irish-Center-long"
+#         elif dataset == "long_taipei_bus":
+#             tmp_pd["dataset"] = "Taipei-bus-long"
+#         else:
+#             raise Exception
+#         pds.append(tmp_pd)
+#
+#     return pandas.concat(pds, ignore_index=True, sort=True)
 
 def get_df_window(path: str):
     pds = []
@@ -112,10 +115,13 @@ def get_df_window(path: str):
 
         pds.append(tmp_pd)
 
-    return pandas.concat(pds, ignore_index=True, sort=True)
+    ret = pandas.concat(pds, ignore_index=True, sort=True)
+    ret = ret.sort_values(by=["dataset"])
+    return ret
 
 def get_df_noscope(path: str):
     ret = pandas.read_json(path, lines=True, convert_dates=False)
+    ret = ret.sort_values(by=["dataset"])
     return ret
 
 
@@ -132,11 +138,11 @@ def replace_dataset_names(dataset_name):
         elif x == "Taipei-bus-long":
             ret.append("Taipei-bus")
         elif x == "Grand_Canal_long":
-            ret.append("Grand Canal")
+            ret.append("Grand-Canal")
         elif x == "Lamai_Tai_Street_long":
-            ret.append("Lamai Tai street")
+            ret.append("Lamai-Tai-street")
         elif x == "Daxi_Old_Street-long":
-            ret.append("Daxi old street")
+            ret.append("Daxi-old-street")
         else:
             ret.append(x)
     return ret
@@ -188,7 +194,6 @@ def plot_overall(df, df_noscope, out_prefix, bar_width=0.3):
     dataset_names = df["dataset"].tolist()
 
     baseline = df["baseline"].tolist()
-    max_baseline = df["baseline"].max()
     everest = df["runtime"].tolist()
 
     # get noscope baseline
@@ -239,7 +244,7 @@ def plot_overall(df, df_noscope, out_prefix, bar_width=0.3):
         ax.text(coord[0], coord[1] + 0.02, "%.1fx" % (baseline[i] / y),
                 horizontalalignment='center', fontsize=15, color="black",
                 transform=ax.transAxes)
-    ax.legend(["baseline", "noscope", "Everest"], fontsize=15, framealpha=0)
+    ax.legend(['scan-and-test', 'select-and-topk', "Everest"], fontsize=15, framealpha=0)
     with PdfPages(out_prefix+"overall_speedup.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0.01)
 
@@ -327,6 +332,7 @@ def plot_overall(df, df_noscope, out_prefix, bar_width=0.3):
 
 
 def plot_quality_vs_k(df, out_prefix):
+    df = df.sort_values(by=['dataset', 'k'])
     target_ks = df["k"].unique().tolist()
 
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
@@ -484,7 +490,7 @@ def plot_quality_vs_k(df, out_prefix):
 
 
 def plot_quality_vs_confidence(df, out_prefix):
-
+    df = df.sort_values(by=['dataset', 'conf_thres'])
     styles = ['-', '--', '-.', '-', '--', '-.', '-']
 
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
@@ -658,9 +664,9 @@ def windows_inject_data(json_window, json_k, k=50):
 
 def plot_quality_vs_window(df, out_prefix):
 
-    manual_x_axle = ["1frame", "1s", "2s", "5s", "10s"]
+    manual_x_axle = ["1", "30", "60", "150", "300"]
     # manual_x_axle = ["1frame", "1s", "10s", "30s", "1min", "3min"]
-    df = df.sort_values(by=['window'])
+    df = df.sort_values(by=['dataset','window'])
     windows = df["window"].unique().tolist()
 
     fig, ax = plt.subplots(figsize=(5.4, 3.7))
@@ -678,10 +684,9 @@ def plot_quality_vs_window(df, out_prefix):
     ax.xaxis.set_tick_params(which='major', length=5.4, labelsize=15)
     ax.xaxis.set_tick_params(width=1, which='minor', length=3.7)
     ax.set_ylabel('Speedup', fontsize=15, labelpad=0)
-    ax.set_xlabel('Window size', fontsize=15, labelpad=0)
+    ax.set_xlabel('Window size (frames)', fontsize=15, labelpad=0)
 
-    ax.set_xticklabels(manual_x_axle,
-                       rotation=90, ha="center")
+    ax.set_xticklabels(manual_x_axle)
 
     fig.subplots_adjust(bottom=0.15)
     lines = []
@@ -724,9 +729,8 @@ def plot_quality_vs_window(df, out_prefix):
     ax.xaxis.set_tick_params(width=1, which='major', length=5.4, labelsize=15)
     ax.xaxis.set_tick_params(width=1, which='minor', length=3.7)
     ax.set_ylabel('Precision (%)', fontsize=15, labelpad=0)
-    ax.set_xlabel('Window', fontsize=15, labelpad=0)
-    ax.set_xticklabels(manual_x_axle,
-                       rotation=90, ha="center")
+    ax.set_xlabel('Window size (frames)', fontsize=15, labelpad=0)
+    ax.set_xticklabels(manual_x_axle)
 
 
     fig.subplots_adjust(bottom=0.15)
@@ -762,9 +766,8 @@ def plot_quality_vs_window(df, out_prefix):
     ax.xaxis.set_tick_params(width=1, which='major', length=6, labelsize=15)
     ax.xaxis.set_tick_params(width=1, which='minor', length=4)
     ax.set_ylabel('Score Error', fontsize=15, labelpad=0)
-    ax.set_xlabel('Window', fontsize=15, labelpad=0)
-    ax.set_xticklabels(manual_x_axle,
-                       rotation=90, ha="center")
+    ax.set_xlabel('Window size (frames)', fontsize=15, labelpad=0)
+    ax.set_xticklabels(manual_x_axle)
 
     fig.subplots_adjust(bottom=0.15)
     lines = []
@@ -799,9 +802,8 @@ def plot_quality_vs_window(df, out_prefix):
     ax.xaxis.set_tick_params(width=1, which='major', length=6, labelsize=15)
     ax.xaxis.set_tick_params(width=1, which='minor', length=4)
     ax.set_ylabel('Rank Distance', fontsize=15, labelpad=0)
-    ax.set_xlabel('Window', fontsize=15, labelpad=0)
-    ax.set_xticklabels(manual_x_axle,
-                       rotation=90, ha="center")
+    ax.set_xlabel('Window size (frames)', fontsize=15, labelpad=0)
+    ax.set_xticklabels(manual_x_axle)
 
     fig.subplots_adjust(bottom=0.15)
     lines = []
@@ -935,6 +937,10 @@ def plot_quality_vs_num_object(df, out_prefix):
 
 def plot_quality_vs_scoring_func(df, out_prefix):
 
+    tmp_BAR_FILL_HATCH = [None, "\\", "/", '.', '+', 'o']
+    tmp_BAR_FILL_COLOR = ["black", "white", "white", "white", "white",
+                      "white"]
+
     # SpeedUp, Precision, Rank distance, Score error
     tmp_dataset_name = df["dataset"].tolist()
 
@@ -956,9 +962,9 @@ def plot_quality_vs_scoring_func(df, out_prefix):
 
     bar_y_pos = np.arange(len(tmp_dataset_name))
     for idx, y_pos in enumerate(bar_y_pos):
-        plt.bar(y_pos, speedup[idx], hatch=BAR_FILL_HATCH[idx % len(BAR_FILL_HATCH)],
-                color=BAR_FILL_COLOR[idx % len(BAR_FILL_COLOR)], edgecolor='black')
-    plt.xticks(bar_y_pos, tmp_dataset_name, rotation=30)
+        plt.bar(y_pos, speedup[idx], hatch=tmp_BAR_FILL_HATCH[idx % len(tmp_BAR_FILL_HATCH)],
+                color=tmp_BAR_FILL_COLOR[idx % len(tmp_BAR_FILL_COLOR)], edgecolor='black')
+    plt.xticks(bar_y_pos, tmp_dataset_name, rotation=30, ha="right")
     yticks = ax.get_yticks().tolist()
     ax.set_yticklabels(["%dx" % y for y in yticks])
 
@@ -980,10 +986,10 @@ def plot_quality_vs_scoring_func(df, out_prefix):
     bar_y_pos = np.arange(len(tmp_dataset_name))
     for idx, y_pos in enumerate(bar_y_pos):
         plt.bar(y_pos, precisions[idx] * 100,
-                hatch=BAR_FILL_HATCH[idx % len(BAR_FILL_HATCH)],
-                color=BAR_FILL_COLOR[idx % len(BAR_FILL_COLOR)],
+                hatch=tmp_BAR_FILL_HATCH[idx % len(tmp_BAR_FILL_HATCH)],
+                color=tmp_BAR_FILL_COLOR[idx % len(tmp_BAR_FILL_COLOR)],
                 edgecolor='black')
-    plt.xticks(bar_y_pos, tmp_dataset_name,rotation=30)
+    plt.xticks(bar_y_pos, tmp_dataset_name,rotation=30, ha="right")
 
     with PdfPages(out_prefix + "scorefunc_vs_precision.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0.01)
@@ -1006,10 +1012,10 @@ def plot_quality_vs_scoring_func(df, out_prefix):
         if score_error < 0.02:
             score_error = 0.01
         plt.bar(y_pos, score_error ,
-                hatch=BAR_FILL_HATCH[idx % len(BAR_FILL_HATCH)],
-                color=BAR_FILL_COLOR[idx % len(BAR_FILL_COLOR)],
+                hatch=tmp_BAR_FILL_HATCH[idx % len(tmp_BAR_FILL_HATCH)],
+                color=tmp_BAR_FILL_COLOR[idx % len(tmp_BAR_FILL_COLOR)],
                 edgecolor='black')
-    plt.xticks(bar_y_pos, tmp_dataset_name, rotation=30)
+    plt.xticks(bar_y_pos, tmp_dataset_name, rotation=30, ha="right")
 
     with PdfPages(out_prefix + "scorefunc_vs_score_error.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0.01)
@@ -1033,10 +1039,10 @@ def plot_quality_vs_scoring_func(df, out_prefix):
         if rank_distances[idx] < 1:
             rank_distance = 0.2
         plt.bar(y_pos, rank_distance,
-                hatch=BAR_FILL_HATCH[idx % len(BAR_FILL_HATCH)],
-                color=BAR_FILL_COLOR[idx % len(BAR_FILL_COLOR)],
+                hatch=tmp_BAR_FILL_HATCH[idx % len(tmp_BAR_FILL_HATCH)],
+                color=tmp_BAR_FILL_COLOR[idx % len(tmp_BAR_FILL_COLOR)],
                 edgecolor='black')
-    plt.xticks(bar_y_pos, tmp_dataset_name, rotation=30)
+    plt.xticks(bar_y_pos, tmp_dataset_name, rotation=30, ha="right")
 
     with PdfPages(out_prefix + "scorefunc_vs_rank_distance.pdf") as pdf:
         pdf.savefig(fig, bbox_inches="tight", pad_inches=0.01)
